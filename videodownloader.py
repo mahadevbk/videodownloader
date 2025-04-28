@@ -12,7 +12,9 @@ import shutil
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-st.title("🎥 Video & Audio Downloader")
+# App Title
+st.set_page_config(page_title="Dev's Video Downloader", page_icon="🎥")
+st.title("🎥 Dev's Video Downloader")
 st.write("Paste a video URL from YouTube, Facebook, Instagram, or other supported platforms to download.")
 
 # Input field for URL
@@ -56,14 +58,12 @@ def fetch_formats_for_selection(url, use_cookies=False, browser=None, audio_only
                 format_id = f.get('format_id', '')
                 ext = f.get('ext', '')
                 if audio_only:
-                    # Only list audio formats
                     if f.get('vcodec') == 'none':
-                        abr = f.get('abr', 'unknown')  # Audio bitrate
+                        abr = f.get('abr', 'unknown')
                         filesize = f.get('filesize') or 0
                         size_mb = f"{round(filesize / 1024 / 1024, 1)}MB" if filesize else "unknown size"
                         format_list.append((format_id, f"{ext.upper()} {abr}kbps ({size_mb})"))
                 else:
-                    # Only list video formats
                     if f.get('vcodec') != 'none':
                         resolution = f.get('format_note', '') or f.get('height', 'unknown')
                         filesize = f.get('filesize') or 0
@@ -91,7 +91,6 @@ def download_with_ytdlp(url, use_cookies=False, browser=None, specific_format=No
         }
 
         if audio_only:
-            # Convert to mp3 after download
             ydl_opts['postprocessors'].append({
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
@@ -129,7 +128,6 @@ def download_with_ytdlp(url, use_cookies=False, browser=None, specific_format=No
 def download_youtube_video(url, use_cookies=False, browser=None, specific_format=None, audio_only=False):
     """Download YouTube video using pytube first, fallback to yt-dlp."""
     if audio_only:
-        # pytube doesn't support audio-only well; use yt-dlp
         return download_with_ytdlp(url, use_cookies, browser, specific_format, audio_only)
 
     try:
@@ -171,7 +169,7 @@ if url:
                 video_data, filename_or_error, tmpdir = download_with_ytdlp(url, use_cookies, browser, specific_format=selected_format_id, audio_only=audio_only)
 
             if video_data:
-                st.success("Download successful!")
+                st.success("✅ Download successful!")
                 mime_type = "audio/mpeg" if audio_only else "video/mp4"
                 st.download_button(
                     label="Click to save file",
@@ -183,5 +181,8 @@ if url:
                     video_data.close()
                     shutil.rmtree(tmpdir, ignore_errors=True)
             else:
-                st.error(filename_or_error)
+                if "Video unavailable" in filename_or_error or "This video is not available" in filename_or_error:
+                    st.error("⚠️ The video is not available (deleted, private, blocked). Please check the URL.")
+                else:
+                    st.error(filename_or_error)
                 st.text("Verbose error output logged to console. Check terminal for details.")
