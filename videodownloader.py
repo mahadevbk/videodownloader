@@ -28,22 +28,28 @@ def is_youtube_url(url):
         r'(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
     return bool(re.match(youtube_regex, url))
 
-def download_youtube_video(url):
-    """Download a YouTube video using pytube."""
+def download_youtube_video(url, use_cookies=False, browser=None):
+    """Download a YouTube video using pytube, fallback to yt-dlp if it fails."""
+    # Try pytube first
     try:
+        logger.debug(f"Attempting pytube for YouTube video: {url}")
         yt = pytube.YouTube(url)
         stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
         if not stream:
-            return None, "No suitable video stream found."
+            logger.warning("No suitable video stream found with pytube, falling back to yt-dlp.")
+            return download_with_ytdlp(url, use_cookies, browser)  # Fallback to yt-dlp
+        logger.debug(f"Selected stream: {stream}")
         video_data = BytesIO()
         stream.stream_to_buffer(video_data)
         video_data.seek(0)
         return video_data, stream.default_filename
     except Exception as e:
-        return None, f"Error downloading YouTube video: {str(e)}"
+        logger.error(f"pytube failed: {str(e)}. Falling back to yt-dlp.")
+        # Fallback to yt-dlp
+        return download_with_ytdlp(url, use_cookies, browser)
 
 def download_with_ytdlp(url, use_cookies=False, browser=None):
-    """Download a video using yt-dlp for non-YouTube platforms."""
+    """Download a video using yt-dlp for non-YouTube platforms or as fallback."""
     try:
         ydl_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
@@ -65,13 +71,14 @@ def download_with_ytdlp(url, use_cookies=False, browser=None):
             filename = info.get('title', 'video') + '.mp4'
             return video_data, filename
     except Exception as e:
+        logger.error(f"yt-dlp failed: {str(e)}")
         return None, f"Error downloading video: {str(e)}"
 
 if url:
     if st.button("Download Video"):
         with st.spinner("Downloading..."):
             if is_youtube_url(url):
-                video_data, filename_or_error = download_youtube_video(url)
+                video_data, filename_or_error = download_youtube_video(url, use_cookies, browser)
             else:
                 video_data, filename_or_error = download_with_ytdlp(url, use_cookies, browser)
 
