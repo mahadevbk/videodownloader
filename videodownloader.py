@@ -3,6 +3,11 @@ import pytube
 import yt_dlp
 from io import BytesIO
 import re
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 st.title("Video Downloader")
 st.write("Paste a video URL from YouTube, Facebook, Instagram, or other supported platforms to download.")
@@ -37,8 +42,11 @@ def download_with_ytdlp(url):
         ydl_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             'outtmpl': '-',
-            'quiet': True,
-            'no_warnings': True,
+            'quiet': False,
+            'verbose': True,
+            'cookiesfrombrowser': 'firefox',  # Adjust browser as needed
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'logger': logger,  # Log yt-dlp output
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -68,3 +76,4 @@ if url:
                 )
             else:
                 st.error(filename_or_error)
+                st.text("Verbose error output logged to console.")
