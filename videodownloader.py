@@ -15,6 +15,12 @@ st.write("Paste a video URL from YouTube, Facebook, Instagram, or other supporte
 # Input field for URL
 url = st.text_input("Enter Video URL")
 
+# Option to use browser cookies
+use_cookies = st.checkbox("Use browser cookies for private/restricted videos")
+browser = None
+if use_cookies:
+    browser = st.selectbox("Select browser", ["firefox", "chrome", "safari", "edge", "opera"], index=0)
+
 def is_youtube_url(url):
     """Check if the URL is from YouTube."""
     youtube_regex = (
@@ -36,18 +42,21 @@ def download_youtube_video(url):
     except Exception as e:
         return None, f"Error downloading YouTube video: {str(e)}"
 
-def download_with_ytdlp(url):
+def download_with_ytdlp(url, use_cookies=False, browser=None):
     """Download a video using yt-dlp for non-YouTube platforms."""
     try:
         ydl_opts = {
             'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-            'outtmpl': '-',
+            'outtmpl': '-',  # Output to buffer
             'quiet': False,
-            'verbose': True,
-            'cookiesfrombrowser': 'firefox',  # Adjust browser as needed
+            'verbose': True,  # Enable verbose output for debugging
             'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'logger': logger,  # Log yt-dlp output
         }
+        # Add cookies-from-browser if enabled
+        if use_cookies and browser:
+            ydl_opts['cookiesfrombrowser'] = browser  # Pass browser name as string
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             video_data = BytesIO()
@@ -64,7 +73,7 @@ if url:
             if is_youtube_url(url):
                 video_data, filename_or_error = download_youtube_video(url)
             else:
-                video_data, filename_or_error = download_with_ytdlp(url)
+                video_data, filename_or_error = download_with_ytdlp(url, use_cookies, browser)
 
             if video_data:
                 st.success("Download successful!")
@@ -76,4 +85,4 @@ if url:
                 )
             else:
                 st.error(filename_or_error)
-                st.text("Verbose error output logged to console.")
+                st.text("Verbose error output logged to console. Check terminal for details.")
