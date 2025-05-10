@@ -186,3 +186,5 @@ if url:
                 else:
                     st.error(filename_or_error)
                 st.text("Verbose error output logged to console. Check terminal for details.")
+
+st.info("Built with ❤️ using [Streamlit](https://streamlit.io/) — free and open source. [Other Scripts by dev](https://devs-scripts.streamlit.app/) on Streamlit.")
